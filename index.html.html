@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NUV Student Assessment Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .kpi-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .kpi-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+        }
+        
+        .kpi-value {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .kpi-label {
+            font-size: 1rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .kpi-trend {
+            font-size: 0.9rem;
+            padding: 5px 10px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+        
+        .trend-critical { background: #ffebee; color: #c62828; }
+        .trend-warning { background: #fff3e0; color: #ef6c00; }
+        .trend-good { background: #e8f5e8; color: #2e7d32; }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        .chart-container {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .chart-container h3 {
+            margin-bottom: 20px;
+            color: #333;
+            font-size: 1.3rem;
+        }
+        
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .controls h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .filter-group select, .filter-group input {
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        .filter-group select:focus, .filter-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .students-table-container {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+        
+        .students-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        .students-table th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        
+        .students-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .students-table tr:hover {
+            background: #f8f9ff;
+        }
+        
+        .performance-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .excellent { background: #4caf50; color: white; }
+        .good { background: #8bc34a; color: white; }
+        .average { background: #ff9800; color: white; }
+        .poor { background: #f44336; color: white; }
+        
+        .chart-wrapper {
+            position: relative;
+            height: 400px;
+        }
+        
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .filter-group {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <h1>📊 NUV Student Assessment Dashboard</h1>
+            <p>Interactive Analysis of 118 Students Across Finance, Marketing, HR & Operations</p>
+        </div>
+        
+        <div class="kpi-grid" id="kpiGrid">
+            <!-- KPI cards will be populated by JavaScript -->
+        </div>
+        
+        <div class="controls">
+            <h3>🔍 Interactive Filters</h3>
+            <div class="filter-group">
+                <select id="departmentFilter">
+                    <option value="">All Departments</option>
+                    <option value="Finance">Finance</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="HR">HR</option>
+                    <option value="Operation">Operation</option>
+                </select>
+                
+                <select id="performanceFilter">
+                    <option value="">All Performance Levels</option>
+                    <option value="excellent">Excellent (70+)</option>
+                    <option value="good">Good (50-69)</option>
+                    <option value="average">Average (40-49)</option>
+                    <option value="poor">Poor (<40)</option>
+                </select>
+                
+                <input type="text" id="nameSearch" placeholder="Search by student name..." style="min-width: 200px;">
+            </div>
+        </div>
+        
+        <div class="charts-grid">
+            <div class="chart-container">
+                <h3>📈 Department Performance Comparison</h3>
+                <div class="chart-wrapper">
+                    <canvas id="departmentChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3>🎯 Skills Analysis Radar</h3>
+                <div class="chart-wrapper">
+                    <canvas id="skillsRadar"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3>📊 Performance Distribution</h3>
+                <div class="chart-wrapper">
+                    <canvas id="distributionChart"></canvas>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h3>⚡ Critical Insights</h3>
+                <div class="chart-wrapper">
+                    <canvas id="criticalChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="students-table-container">
+            <h3>👥 Detailed Student Performance</h3>
+            <div id="studentCount" style="margin-bottom: 15px; color: #666;"></div>
+            <table class="students-table" id="studentsTable">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Department</th>
+                        <th>Quantitative</th>
+                        <th>Verbal</th>
+                        <th>Logical</th>
+                        <th>Domain</th>
+                        <th>Total</th>
+                        <th>Performance</th>
+                    </tr>
+                </thead>
+                <tbody id="studentsTableBody">
+                    <!-- Student data will be populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Student data
+        const studentsData = [
+            {name: "Aanchal Lala", domain: "Finance", quantitative: 11.5, verbal: 9.5, logical: 14.75, domainMarks: 25.75, total: 61.5},
+            {name: "Aarati Narsale", domain: "Finance", quantitative: 10.5, verbal: 10, logical: 11.5, domainMarks: 11.75, total: 43.75},
+            {name: "Adeshara Mitali", domain: "Finance", quantitative: 10.25, verbal: 8.75, logical: 8.5, domainMarks: 23.25, total: 50.75},
+            {name: "Akhilesh Panicker", domain: "Finance", quantitative: 3, verbal: 12, logical: 14.25, domainMarks: 12.5, total: 41.75},
+            {name: "Aliakbar Chasmawala", domain: "Finance", quantitative: 15.5, verbal: 6.25, logical: 12, domainMarks: 32.5, total: 66.25},
+            {name: "Amit Dalwadi", domain: "Finance", quantitative: 4, verbal: 8.75, logical: 7.5, domainMarks: 20, total: 40.25},
+            {name: "Anuj Golaniya", domain: "Finance", quantitative: 6.25, verbal: 2, logical: 14, domainMarks: 19.25, total: 41.5},
+            {name: "Bhaumi Asti", domain: "Finance", quantitative: 5.5, verbal: 12.5, logical: 10.75, domainMarks: 20.5, total: 49.25},
+            {name: "Bhavika Patel", domain: "Finance", quantitative: 4.25, verbal: 5.5, logical: 14.5, domainMarks: 13.75, total: 38},
+            {name: "Darshil Maheshwari", domain: "Finance", quantitative: 5.5, verbal: 5.25, logical: 6.5, domainMarks: 19.5, total: 36.75},
+            {name: "Devang Vaja", domain: "Finance", quantitative: 2.25, verbal: 4.25, logical: 7, domainMarks: 11, total: 24.5},
+            {name: "Dhruv Solanki", domain: "Finance", quantitative: 8, verbal: 6, logical: 9.75, domainMarks: 15.75, total: 39.5},
+            {name: "Dhruvi rana", domain: "Finance", quantitative: 7.25, verbal: 3.25, logical: 5.25, domainMarks: 14.25, total: 30},
+            {name: "Harsh Shah", domain: "Finance", quantitative: 14.5, verbal: 13.75, logical: 13.25, domainMarks: 17.5, total: 59},
+            {name: "Himani Dholakia", domain: "Finance", quantitative: 10.75, verbal: 10.5, logical: 7.25, domainMarks: 18, total: 46.5},
+            {name: "Ishita Sharda", domain: "Finance", quantitative: 10, verbal: 10, logical: 7.5, domainMarks: 15, total: 42.5},
+            {name: "Khushi Chaudhari", domain: "Finance", quantitative: 2.25, verbal: 10, logical: 11.75, domainMarks: 20.75, total: 44.75},
+            {name: "Kinjal Mohite", domain: "Finance", quantitative: 8.75, verbal: 6.25, logical: 9, domainMarks: 18.75, total: 42.75},
+            {name: "Kishor talreja", domain: "Finance", quantitative: 14, verbal: 9.5, logical: 15.25, domainMarks: 23.25, total: 62},
+            {name: "Krish Natbhanjan", domain: "Finance", quantitative: 9.25, verbal: 3.5, logical: 11.5, domainMarks: 15.5, total: 39.75},
+            {name: "Lovely Agrawal", domain: "Finance", quantitative: 11.75, verbal: 9, logical: 7.75, domainMarks: 19.75, total: 48.25},
+            {name: "Manav Barmeda", domain: "Finance", quantitative: 1.25, verbal: 8.75, logical: 7.5, domainMarks: 13.75, total: 31.25},
+            {name: "Mihir Prajapati", domain: "Finance", quantitative: 8.75, verbal: 5, logical: 10.75, domainMarks: 19.5, total: 44},
+            {name: "Nandini More", domain: "Finance", quantitative: 11, verbal: 10, logical: 12.5, domainMarks: 14.5, total: 48},
+            {name: "Nidhi Amin", domain: "Finance", quantitative: 7.75, verbal: 10.5, logical: 14.25, domainMarks: 29.75, total: 62.25},
+            {name: "Nidhi Desai", domain: "Finance", quantitative: 15.5, verbal: 8.75, logical: 13.75, domainMarks: 23, total: 61},
+            {name: "Nilam telang", domain: "Finance", quantitative: 2.75, verbal: 10.5, logical: 8.75, domainMarks: 13.5, total: 35.5},
+            {name: "Nilay Pathak", domain: "Finance", quantitative: 9.75, verbal: 9.25, logical: 11.5, domainMarks: 29.25, total: 59.75},
+            {name: "Nisarg Shah", domain: "Finance", quantitative: 1.75, verbal: 12, logical: 12.75, domainMarks: 12.5, total: 39},
+            {name: "Parth Parmar", domain: "Finance", quantitative: 9.75, verbal: 6, logical: 7, domainMarks: 15.5, total: 38.25},
+            {name: "Pratham Purohit", domain: "Finance", quantitative: 7, verbal: 8.25, logical: 14, domainMarks: 22.5, total: 51.75},
+            {name: "Preet Grover", domain: "Finance", quantitative: 10.5, verbal: 10, logical: 13.75, domainMarks: 14, total: 48.25},
+            {name: "Priya Patel", domain: "Finance", quantitative: 6.5, verbal: 7.25, logical: 10.25, domainMarks: 25, total: 49},
+            {name: "Rohit Khumavat", domain: "Finance", quantitative: 6.5, verbal: 6, logical: 12.75, domainMarks: 20.5, total: 45.75},
+            {name: "Romil Patel", domain: "Finance", quantitative: 5, verbal: 6.25, logical: 8.75, domainMarks: 18.75, total: 38.75},
+            {name: "Rushvi Soni", domain: "Finance", quantitative: 4.5, verbal: 10, logical: 16.25, domainMarks: 21.25, total: 52},
+            {name: "Samhita Iyer", domain: "Finance", quantitative: 12.5, verbal: 14.75, logical: 12.5, domainMarks: 20.25, total: 60},
+            {name: "Sharandeep Singh", domain: "Finance", quantitative: 5, verbal: 8.75, logical: 8.75, domainMarks: 18.75, total: 41.25},
+            {name: "Shivam joshi", domain: "Finance", quantitative: 15.75, verbal: 6.75, logical: 9.75, domainMarks: 25, total: 57.25},
+            {name: "Srishti Marjarn", domain: "Finance", quantitative: 11, verbal: 7.5, logical: 12.25, domainMarks: 26.75, total: 57.5},
+            {name: "Suryadev Yadav", domain: "Finance", quantitative: 2.5, verbal: 6.25, logical: 1.25, domainMarks: 15, total: 25},
+            {name: "Tiya Gandhi", domain: "Finance", quantitative: 11.25, verbal: 9.75, logical: 11.75, domainMarks: 31, total: 63.75},
+            {name: "VaidehiPulnar", domain: "Finance", quantitative: 12.75, verbal: 7.25, logical: 14, domainMarks: 23.25, total: 57.25},
+            {name: "Vansh Patel", domain: "Finance", quantitative: 12.75, verbal: 9.5, logical: 12.75, domainMarks: 23.5, total: 58.5},
+            {name: "Veena Desau", domain: "Finance", quantitative: 4.25, verbal: 8, logical: 13.25, domainMarks: 16.75, total: 42.25},
+            {name: "Vidhi Shah", domain: "Finance", quantitative: 13.75, verbal: 8.75, logical: 15, domainMarks: 19, total: 56.5},
+            {name: "Vikas Kumawat", domain: "Finance", quantitative: 11.25, verbal: 2.75, logical: 10.75, domainMarks: 26.75, total: 51.5},
+            {name: "Vivek Gajjar", domain: "Finance", quantitative: 6.5, verbal: 8.75, logical: 9, domainMarks: 17.5, total: 41.75},
+            {name: "Yashvi Shuimal", domain: "Finance", quantitative: 7, verbal: 13, logical: 8.25, domainMarks: 18, total: 46.25},
+            {name: "Dev Bhatia", domain: "Marketing", quantitative: 3.75, verbal: 8, logical: 8, domainMarks: 23.5, total: 43.25},
+            {name: "Dhairya Bilandani", domain: "Marketing", quantitative: 12, verbal: 4.75, logical: 12.75, domainMarks: 20, total: 49.5},
+            {name: "Shashank Pandey", domain: "Marketing", quantitative: 17.75, verbal: 9, logical: 6, domainMarks: 20.5, total: 53.25},
+            {name: "Hetvi Patel", domain: "Marketing", quantitative: 7, verbal: 12.75, logical: 10, domainMarks: 19.25, total: 49},
+            {name: "Pooja Upadhyay", domain: "Marketing", quantitative: 14.75, verbal: 11.5, logical: 13, domainMarks: 25.75, total: 65},
+            {name: "Tej Pandya", domain: "Marketing", quantitative: 11.75, verbal: 10.25, logical: 15, domainMarks: 34, total: 71},
+            {name: "Heni Patel", domain: "Marketing", quantitative: 13.75, verbal: 5.25, logical: 13.75, domainMarks: 15.75, total: 48.5},
+            {name: "Parthiv Zala", domain: "Marketing", quantitative: 10.5, verbal: 6.25, logical: 12.5, domainMarks: 13, total: 42.25},
+            {name: "Janvi Bhandari", domain: "Marketing", quantitative: 7.25, verbal: 10.25, logical: 13.25, domainMarks: 24.25, total: 55},
+            {name: "Sanjana Ahuja", domain: "Marketing", quantitative: 5.75, verbal: 8.75, logical: 6.5, domainMarks: 25.75, total: 46.75},
+            {name: "Dhairya kabrawala", domain: "Marketing", quantitative: 2.5, verbal: 7.25, logical: 8.25, domainMarks: 33.75, total: 51.75},
+            {name: "Ruzan Contractor", domain: "Marketing", quantitative: 14.5, verbal: 11.25, logical: 10.5, domainMarks: 15.25, total: 51.5},
+            {name: "Tanisha Bhamra", domain: "Marketing", quantitative: 0, verbal: 5, logical: 4.25, domainMarks: 16.5, total: 25.75},
+            {name: "Shubhi Mall", domain: "Marketing", quantitative: 3.5, verbal: 6.25, logical: 15, domainMarks: 15.75, total: 40.5},
+            {name: "Karan Taneja", domain: "Marketing", quantitative: 5.25, verbal: 4.5, logical: 8, domainMarks: 16, total: 33.75},
+            {name: "Kavya Jain", domain: "Marketing", quantitative: 4.75, verbal: 11.25, logical: 13.75, domainMarks: 28.75, total: 58.5},
+            {name: "Riya Vaishnav", domain: "Marketing", quantitative: 11.5, verbal: 7.5, logical: 13.75, domainMarks: 19, total: 51.75},
+            {name: "Rumana Khan", domain: "Marketing", quantitative: 9.75, verbal: 3.5, logical: 13.75, domainMarks: 13, total: 40},
+            {name: "Abhinav Saravta", domain: "Marketing", quantitative: 9.25, verbal: 7, logical: 14, domainMarks: 24.5, total: 54.75},
+            {name: "Namrata Gajnani", domain: "Marketing", quantitative: 10, verbal: 5, logical: 8.75, domainMarks: 18.75, total: 42.5},
+            {name: "Devanshi Dave", domain: "Marketing", quantitative: 7.25, verbal: 9.25, logical: 13.25, domainMarks: 20.5, total: 50.25},
+            {name: "Gauri Nair", domain: "Marketing", quantitative: 3, verbal: 12, logical: 14.25, domainMarks: 21.25, total: 50.5},
+            {name: "Khyati Shah", domain: "Marketing", quantitative: 4.75, verbal: 15, logical: 11.25, domainMarks: 26.25, total: 57.25},
+            {name: "Yash Barai", domain: "Marketing", quantitative: 1.5, verbal: 6, logical: 10.75, domainMarks: 13, total: 31.25},
+            {name: "Harsh Joshi", domain: "Marketing", quantitative: 3.25, verbal: 8.25, logical: 7.25, domainMarks: 14.25, total: 33},
+            {name: "Nirbhai Navlani", domain: "Marketing", quantitative: 8.75, verbal: 13.75, logical: 11.5, domainMarks: 22.75, total: 56.75},
+            {name: "Megha Patel", domain: "Marketing", quantitative: 8.5, verbal: 7.75, logical: 16.25, domainMarks: 17.75, total: 50.25},
+            {name: "Shruti Pagi", domain: "Marketing", quantitative: 3.5, verbal: 10, logical: 6.5, domainMarks: 24, total: 44},
+            {name: "Shree Pillai", domain: "Marketing", quantitative: 8.75, verbal: 7.75, logical: 8.75, domainMarks: 24, total: 49.25},
+            {name: "Pari Dhakan", domain: "Marketing", quantitative: -1.25, verbal: 5, logical: 10, domainMarks: 21.5, total: 35.25},
+            {name: "Drashti Agrawal", domain: "Marketing", quantitative: 6.75, verbal: 4.75, logical: 10.75, domainMarks: 15.75, total: 38},
+            {name: "Parv Shah", domain: "Marketing", quantitative: 6.5, verbal: 4.75, logical: 11.5, domainMarks: 20.25, total: 43},
+            {name: "Meha Bbaria", domain: "Marketing", quantitative: 14, verbal: 12.5, logical: 8.75, domainMarks: 19.25, total: 54.5},
+            {name: "Hunaid Campwala", domain: "Marketing", quantitative: 4.5, verbal: 10.25, logical: 11.25, domainMarks: 24, total: 50},
+            {name: "Nikita Suchdev", domain: "Marketing", quantitative: 6.5, verbal: 5.5, logical: 9.5, domainMarks: 18.75, total: 40.25},
+            {name: "Princy Dharoliwala", domain: "Marketing", quantitative: 10.75, verbal: 3.75, logical: 10.25, domainMarks: 18, total: 42.75},
+            {name: "Viashnavi Shinde", domain: "Marketing", quantitative: 4.5, verbal: 6.25, logical: 8.25, domainMarks: 25, total: 44},
+            {name: "Vineet Varbhade", domain: "Marketing", quantitative: 13, verbal: 10.5, logical: 8.25, domainMarks: 23, total: 54.75},
+            {name: "Aditi Gadhani", domain: "Marketing", quantitative: 6.25, verbal: 8.75, logical: 6.25, domainMarks: 23.75, total: 45},
+            {name: "Deesha More", domain: "Marketing", quantitative: 13.75, verbal: 12.5, logical: 12.75, domainMarks: 19.75, total: 58.75},
+            {name: "Riddhi Mistry", domain: "Marketing", quantitative: 6.25, verbal: 12.5, logical: 8.75, domainMarks: 20.25, total: 47.75},
+            {name: "Himani Vani", domain: "Marketing", quantitative: 6.25, verbal: 11.75, logical: 9.5, domainMarks: 18.25, total: 45.75},
+            {name: "Krishna Goswami", domain: "HR", quantitative: 0.25, verbal: 2.5, logical: 2.5, domainMarks: 16.25, total: 21.5},
+            {name: "Shlok Parmar", domain: "HR", quantitative: 11.5, verbal: 6.25, logical: 8.75, domainMarks: 20, total: 46.5},
+            {name: "Rutu Samani", domain: "HR", quantitative: 4.5, verbal: 12.75, logical: 10, domainMarks: 19.5, total: 46.75},
+            {name: "Siddhi Phaltankar", domain: "HR", quantitative: 4.5, verbal: 10.25, logical: 11.5, domainMarks: 22.5, total: 48.75},
+            {name: "Kanchan Prajapati", domain: "HR", quantitative: 4.25, verbal: 8.25, logical: 8.5, domainMarks: 17.25, total: 38.25},
+            {name: "Jisna Joseph", domain: "HR", quantitative: 6.25, verbal: 10, logical: 3.75, domainMarks: 21.25, total: 41.25},
+            {name: "Nilesh Prajapati", domain: "HR", quantitative: 4.25, verbal: 3.75, logical: 15, domainMarks: 14.75, total: 37.75},
+            {name: "Amitesh Shrivastava", domain: "HR", quantitative: 5.5, verbal: 5.25, logical: 8.25, domainMarks: 20.5, total: 39.5},
+            {name: "Krina Mehta", domain: "HR", quantitative: 11.25, verbal: 10.5, logical: 9.5, domainMarks: 14.5, total: 45.75},
+            {name: "Aayush Bhatt", domain: "HR", quantitative: 7, verbal: 8.75, logical: 6, domainMarks: 21.5, total: 43.25},
+            {name: "Dhruti Nevada", domain: "HR", quantitative: 6.25, verbal: 7.5, logical: 10, domainMarks: 17.5, total: 41.25},
+            {name: "Sakhsi Patel", domain: "HR", quantitative: -1.5, verbal: 1.25, logical: 4, domainMarks: 14.25, total: 18},
+            {name: "Kanchan Pardeshi", domain: "HR", quantitative: 10, verbal: 8.75, logical: 12.75, domainMarks: 14.5, total: 46},
+            {name: "Sakshi Joshi", domain: "HR", quantitative: 4.5, verbal: 8.75, logical: 10.75, domainMarks: 22.25, total: 46.25},
+            {name: "Khushi Joshi", domain: "HR", quantitative: 14.75, verbal: 11.5, logical: 11.5, domainMarks: 23.5, total: 61.25},
+            {name: "Hetvi Shah", domain: "HR", quantitative: 12.75, verbal: 8, logical: 11.5, domainMarks: 17.25, total: 49.5},
+            {name: "Aarya Sahasrabuddhe", domain: "HR", quantitative: 2.5, verbal: 8.5, logical: 6.5, domainMarks: 21.25, total: 38.75},
+            {name: "Shrushti Rana", domain: "HR", quantitative: 5.25, verbal: 12.5, logical: 15.75, domainMarks: 17.5, total: 51},
+            {name: "Sakshi Aarya", domain: "HR", quantitative: 4.25, verbal: 7.5, logical: 9.25, domainMarks: 14.25, total: 35.25},
+            {name: "Simran Sharma", domain: "HR", quantitative: 1.5, verbal: 10.5, logical: 11, domainMarks: 13.75, total: 36.75},
+            {name: "Daaman Raulji", domain: "HR", quantitative: 2.5, verbal: 5, logical: 7.5, domainMarks: 16.25, total: 31.25},
+            {name: "Aarti Pal", domain: "Operation", quantitative: 9, verbal: 5.25, logical: 8.75, domainMarks: 21.5, total: 44.5},
+            {name: "Deep Rohit", domain: "Operation", quantitative: 1.5, verbal: 6.5, logical: 7.5, domainMarks: 24.75, total: 40.25},
+            {name: "Junaid Qureshi", domain: "Operation", quantitative: 4.75, verbal: 7.5, logical: 10, domainMarks: 22.5, total: 44.75},
+            {name: "Shivam Pandya", domain: "Operation", quantitative: 7.5, verbal: 8.75, logical: 9.75, domainMarks: 23.25, total: 49.25},
+            {name: "Vanshika Agrawal", domain: "Operation", quantitative: 6.5, verbal: 10, logical: 15.25, domainMarks: 22.5, total: 54.25},
+            {name: "Harsh Ka Patel", domain: "Operation", quantitative: 1.5, verbal: 4.25, logical: 3.5, domainMarks: 20.75, total: 30}
+        ];
+
+        let filteredStudents = [...studentsData];
+
+        // Calculate analytics
+        function calculateAnalytics(data = filteredStudents) {
+            const total = data.length;
+            const avgTotal = data.reduce((sum, s) => sum + s.total, 0) / total;
+            const avgQuantitative = data.reduce((sum, s) => sum + s.quantitative, 0) / total;
+            const avgVerbal = data.reduce((sum, s) => sum + s.verbal, 0) / total;
+            const avgLogical = data.reduce((sum, s) => sum + s.logical, 0) / total;
+            const avgDomain = data.reduce((sum, s) => sum + s.domainMarks, 0) / total;
+            
+            const excellent = data.filter(s => s.total >= 70).length;
+            const good = data.filter(s => s.total >= 50 && s.total < 70).length;
+            const average = data.filter(s => s.total >= 40 && s.total < 50).length;
+            const poor = data.filter(s => s.total < 40).length;
+            
+            return {
+                total, avgTotal, avgQuantitative, avgVerbal, avgLogical, avgDomain,
+                excellent, good, average, poor
+            };
+        }
+
+        // Performance classification
+        function getPerformanceClass(total) {
+            if (total >= 70) return 'excellent';
+            if (total >= 50) return 'good';
+            if (total >= 40) return 'average';
+            return 'poor';
+        }
+
+        function getPerformanceLabel(total) {
+            if (total >= 70) return 'Excellent';
+            if (total >= 50) return 'Good';
+            if (total >= 40) return 'Average';
+            return 'Needs Support';
+        }
+
+        // Update KPI cards
+        function updateKPIs() {
+            const analytics = calculateAnalytics();
+            const kpiGrid = document.getElementById('kpiGrid');
+            
+            kpiGrid.innerHTML = `
+                <div class="kpi-card">
+                    <div class="kpi-value" style="color: #667eea;">${analytics.total}</div>
+                    <div class="kpi-label">Total Students</div>
+                    <div class="kpi-trend trend-good">Active Filters Applied</div>
+                </div>
+                
+                <div class="kpi-card">
+                    <div class="kpi-value" style="color: #2196f3;">${analytics.avgTotal.toFixed(1)}</div>
+                    <div class="kpi-label">Overall Average</div>
+                    <div class="kpi-trend ${analytics.avgTotal >= 50 ? 'trend-good' : 'trend-critical'}">Out of 100</div>
+                </div>
+                
+                <div class="kpi-card">
+                    <div class="kpi-value" style="color: #f44336;">${analytics.poor}</div>
+                    <div class="kpi-label">Critical Cases</div>
+                    <div class="kpi-trend trend-critical">${((analytics.poor/analytics.total)*100).toFixed(1)}% Below 40</div>
+                </div>
+                
+                <div class="kpi-card">
+                    <div class="kpi-value" style="color: #4caf50;">${analytics.excellent}</div>
+                    <div class="kpi-label">High Performers</div>
+                    <div class="kpi-trend trend-good">${((analytics.excellent/analytics.total)*100).toFixed(1)}% Above 70</div>
+                </div>
+                
+                <div class="kpi-card">
+                    <div class="kpi-value" style="color: #ff9800;">${analytics.avgQuantitative.toFixed(1)}/20</div>
+                    <div class="kpi-label">Quantitative Avg</div>
+                    <div class="kpi-trend ${analytics.avgQuantitative >= 10 ? 'trend-warning' : 'trend-critical'}">Critical Skills Gap</div>
+                </div>
+                
+                <div class="kpi-card">
+                    <div class="kpi-value" style="color: #e91e63;">${analytics.avgVerbal.toFixed(1)}/20</div>
+                    <div class="kpi-label">Verbal Avg</div>
+                    <div class="kpi-trend ${analytics.avgVerbal >= 10 ? 'trend-warning' : 'trend-critical'}">Communication Skills</div>
+                </div>
+                
+                <div class="kpi-card">
+                    <div class="kpi-value" style="color: #00bcd4;">${analytics.avgLogical.toFixed(1)}/20</div>
+                    <div class="kpi-label">Logical Avg</div>
+                    <div class="kpi-trend ${analytics.avgLogical >= 10 ? 'trend-good' : 'trend-warning'}">Reasoning Ability</div>
+                </div>
+                
+                <div class="kpi-card">
+                    <div class="kpi-value" style="color: #9c27b0;">${analytics.avgDomain.toFixed(1)}/40</div>
+                    <div class="kpi-label">Domain Knowledge</div>
+                    <div class="kpi-trend ${analytics.avgDomain >= 20 ? 'trend-warning' : 'trend-critical'}">Specialization Focus</div>
+                </div>
+            `;
+        }
+
+        // Update students table
+        function updateStudentsTable() {
+            const tbody = document.getElementById('studentsTableBody');
+            const countDiv = document.getElementById('studentCount');
+            
+            countDiv.textContent = `Showing ${filteredStudents.length} of ${studentsData.length} students`;
+            
+            tbody.innerHTML = filteredStudents.map(student => `
+                <tr>
+                    <td><strong>${student.name}</strong></td>
+                    <td>${student.domain}</td>
+                    <td>${student.quantitative}</td>
+                    <td>${student.verbal}</td>
+                    <td>${student.logical}</td>
+                    <td>${student.domainMarks}</td>
+                    <td><strong>${student.total}</strong></td>
+                    <td><span class="performance-badge ${getPerformanceClass(student.total)}">${getPerformanceLabel(student.total)}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        // Charts
+        let departmentChart, skillsRadar, distributionChart, criticalChart;
+
+        function createCharts() {
+            // Department Performance Chart
+            const deptData = {};
+            filteredStudents.forEach(student => {
+                if (!deptData[student.domain]) {
+                    deptData[student.domain] = { total: 0, count: 0, quant: 0, verbal: 0, logical: 0, domain: 0 };
+                }
+                deptData[student.domain].total += student.total;
+                deptData[student.domain].quant += student.quantitative;
+                deptData[student.domain].verbal += student.verbal;
+                deptData[student.domain].logical += student.logical;
+                deptData[student.domain].domain += student.domainMarks;
+                deptData[student.domain].count++;
+            });
+
+            const deptLabels = Object.keys(deptData);
+            const deptAvgs = deptLabels.map(dept => (deptData[dept].total / deptData[dept].count).toFixed(1));
+
+            if (departmentChart) departmentChart.destroy();
+            departmentChart = new Chart(document.getElementById('departmentChart'), {
+                type: 'bar',
+                data: {
+                    labels: deptLabels,
+                    datasets: [{
+                        label: 'Average Score',
+                        data: deptAvgs,
+                        backgroundColor: ['#667eea', '#764ba2', '#f093fb', '#f5576c'],
+                        borderRadius: 8,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            grid: { color: '#f0f0f0' }
+                        },
+                        x: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // Skills Radar Chart
+            const skillsAvg = {
+                quantitative: filteredStudents.reduce((sum, s) => sum + s.quantitative, 0) / filteredStudents.length,
+                verbal: filteredStudents.reduce((sum, s) => sum + s.verbal, 0) / filteredStudents.length,
+                logical: filteredStudents.reduce((sum, s) => sum + s.logical, 0) / filteredStudents.length,
+                domain: filteredStudents.reduce((sum, s) => sum + s.domainMarks, 0) / filteredStudents.length
+            };
+
+            if (skillsRadar) skillsRadar.destroy();
+            skillsRadar = new Chart(document.getElementById('skillsRadar'), {
+                type: 'radar',
+                data: {
+                    labels: ['Quantitative (20)', 'Verbal (20)', 'Logical (20)', 'Domain (40)'],
+                    datasets: [{
+                        label: 'Average Performance',
+                        data: [
+                            (skillsAvg.quantitative/20*100).toFixed(1),
+                            (skillsAvg.verbal/20*100).toFixed(1),
+                            (skillsAvg.logical/20*100).toFixed(1),
+                            (skillsAvg.domain/40*100).toFixed(1)
+                        ],
+                        backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                        borderColor: '#667eea',
+                        pointBackgroundColor: '#667eea',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#667eea'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: { stepSize: 20 }
+                        }
+                    }
+                }
+            });
+
+            // Performance Distribution
+            const analytics = calculateAnalytics();
+            if (distributionChart) distributionChart.destroy();
+            distributionChart = new Chart(document.getElementById('distributionChart'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Excellent (70+)', 'Good (50-69)', 'Average (40-49)', 'Needs Support (<40)'],
+                    datasets: [{
+                        data: [analytics.excellent, analytics.good, analytics.average, analytics.poor],
+                        backgroundColor: ['#4caf50', '#8bc34a', '#ff9800', '#f44336'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+
+            // Critical Insights Chart
+            const criticalData = deptLabels.map(dept => {
+                const deptStudents = filteredStudents.filter(s => s.domain === dept);
+                return deptStudents.filter(s => s.total < 40).length;
+            });
+
+            if (criticalChart) criticalChart.destroy();
+            criticalChart = new Chart(document.getElementById('criticalChart'), {
+                type: 'bar',
+                data: {
+                    labels: deptLabels,
+                    datasets: [{
+                        label: 'Students Needing Immediate Support',
+                        data: criticalData,
+                        backgroundColor: '#f44336',
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: { stepSize: 1 }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Filter functions
+        function applyFilters() {
+            const deptFilter = document.getElementById('departmentFilter').value;
+            const perfFilter = document.getElementById('performanceFilter').value;
+            const nameSearch = document.getElementById('nameSearch').value.toLowerCase();
+
+            filteredStudents = studentsData.filter(student => {
+                let matches = true;
+
+                if (deptFilter && student.domain !== deptFilter) {
+                    matches = false;
+                }
+
+                if (perfFilter) {
+                    const perfClass = getPerformanceClass(student.total);
+                    if (perfClass !== perfFilter) {
+                        matches = false;
+                    }
+                }
+
+                if (nameSearch && !student.name.toLowerCase().includes(nameSearch)) {
+                    matches = false;
+                }
+
+                return matches;
+            });
+
+            updateKPIs();
+            updateStudentsTable();
+            createCharts();
+        }
+
+        // Event listeners
+        document.getElementById('departmentFilter').addEventListener('change', applyFilters);
+        document.getElementById('performanceFilter').addEventListener('change', applyFilters);
+        document.getElementById('nameSearch').addEventListener('input', applyFilters);
+
+        // Initialize dashboard
+        function initDashboard() {
+            filteredStudents = [...studentsData];
+            updateKPIs();
+            updateStudentsTable();
+            createCharts();
+        }
+
+        // Initialize when page loads
+        window.addEventListener('load', initDashboard);
+    </script>
+</body>
+</html>
